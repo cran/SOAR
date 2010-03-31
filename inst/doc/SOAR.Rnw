@@ -135,9 +135,9 @@ operations in \R, which we now do with another small, artificial
 example.
 
 Memory usage is largely tracked by looking at the number of
-``\texttt{Vcells}'' currently in use.  This is a component of the
-output from the garbage collector:
-o@
+``\texttt{Vcells}'' currently in use.  This is an element of the
+matrix which forms the output message of the garbage collector:
+@
 <<>>=
 vc <- gc(); vc ; v0 <- vc["Vcells", "used"]
 @ %def
@@ -431,16 +431,8 @@ options(defaultPackages = c(getOption("defaultPackages"), "SOAR"))
 to \verb|~/.Rprofile|.  This will mean that \texttt{SOAR} is included
 in the list of packages to be loaded at startup.
 
-Another useful addition to \verb|~/.Rprofile| would be
-\begin{verbatim}
-SOAR::AttachUtils()
-\end{verbatim}
-which will have two effects.  Firstly it will ensure that the
-utilities central cache is part of the search path at startup, and
-secondly it will cause the \texttt{SOAR} package itself to be loaded,
-making the above change in options unnecessary.
-
-Yet another customisation would be to use \R autoloads.  If the lines
+A more conditional way to add \texttt{SOAR} automatically to the
+search path is to use \R autoloads.  If we add lines such as
 \begin{verbatim}
 autoload("Store", "SOAR")
 autoload("Objects", "SOAR")
@@ -448,23 +440,45 @@ autoload("Attach", "SOAR")
 autoload("Remove", "SOAR")
 autoload("Search", "SOAR")
 \end{verbatim}
-were added to \verb|~/.Rprofile|, it would place objects in the
-\texttt{Autoloads} entry of the search path which would mean that a
-reference to any of the four primary functions, or \texttt{Search},
-would cause the \texttt{SOAR} package to be loaded automatically.  A
-reference to one of the variants, however, would still require the
-package to be loaded explicitly with \texttt{library} or \texttt{require}.
+to \verb|~/.Rprofile|, then if any of these five functions are used,
+the \texttt{SOAR} package is automatically attached to the search
+path, no questions asked.  This is done by placing dummy
+\texttt{autoload} objects in the \texttt{Autoload} entry on the search
+path.  These are promises like delayed assignments, but rather than
+loading objects into memory on demand, they attach the specified
+package on to the search path when the function in question is invoked.
 
-For the more intrepid user it is easy to make and add a full list
-with, for example:
+With these autoloads in place we can add further lines to
+\verb|~/.Rprofile| such as:
+\begin{verbatim}
+SOAR::AttachUtils()
+\end{verbatim}
+which will ensure that the central utilities cache is part of the
+search path at startup. We need the double colon construction here to
+let the interpreter know where to fine the function
+\texttt{AttachUtils}.  However these variants on the main functions
+with \texttt{Data} or \texttt{Utils} tacked on to the end of their
+names are front-ends to the basic functions, and actually morph into a
+call to the relevant basic function.  In turn, the basic function
+causes the package to be loaded through the autoload.  So a
+side-effect will be that \texttt{SOAR} will be loaded on the search
+path at startup as well, just before the \verb|.R_Utils| cache.
+
+For the more intrepid user it is easy to make and add a full list of
+possible autoloads for any package and add it to \verb|~/.Rprofile|
+from within \R itself using, for example:
 @
 <<eval=FALSE>>=
-lst <- paste('autoload("', objects("package:SOAR"),
-             '", "SOAR")\n', sep="")
-cat("\n", lst, sep="", file = "~/.Rprofile", append = TRUE)
+if(require(SOAR)) {
+    lst <- paste('autoload("', objects("package:SOAR"),
+                 '", "SOAR")\n', sep="")
+    cat("\n", lst, sep="", file = "~/.Rprofile", append = TRUE)
+}
 @ %def
-In this case using any (exported) function from \texttt{SOAR} would
-cause the package to be loaded automatically, if not already.
+Now using \texttt{any} (exported) function from \texttt{SOAR} would
+cause the package to be loaded automatically, if not already.  This
+sort of dodge can rapidly cause \texttt{.Rprofile} to become very long
+and bulky, of course!)
 
 \section{Scripts or saved data objects?}
 \label{sec:scripts}
@@ -494,11 +508,11 @@ holding such information.
 \section{Some technical details}
 \label{sec:technical}
 
-\paragraph*{Structure of the cache}
+\paragraph*{Structure of the cache.}
 A cache directory consists of \texttt{.RData} files each corresponding
 to a single stored \R object.  The name of the file is related to the
 name of the object itself, but is \emph{encoded} as some file systems
-have restrictions on file names.  For example in \textbf{Windows} file
+have restrictions on file names.  For example in \textsc{Windows} file
 names are case insensitive whereas in \R object names are case
 sensitive.  Details of the encoding are given below.
 
@@ -508,7 +522,7 @@ particular, extra files or sub-directories in the cache directory will
 almost certainly cause problems when the cache is used again by the
 \texttt{SOAR} package, from which recovery may be very difficult.
 
-\paragraph*{Operation of the cache}
+\paragraph*{Operation of the cache.}
 When an existing cache is attached to the search path, as may be done
 explicitly by \texttt{Attach} or implicitly with \texttt{Store},
 \texttt{Objects} or \texttt{Remove}, the following steps take place.
@@ -544,7 +558,7 @@ promise from the attached cache \emph{and} the corresponding
 \texttt{.RData} file from the cache directory.  Thus the removal is
 permanent.
 
-\paragraph*{Birth and death of caches}
+\paragraph*{Birth and death of caches.}
 If reference is made by any of the four main functions to a cache that
 does not presently exist, the cache directory is created (or, more
 precisely \emph{will be created} when any object is stored there)
@@ -580,16 +594,15 @@ from the names of the objects themselves as follows:
 <<>>=
 bad <- c(" ", "<", ">", ":", "\"", "/", "\\", "|", "?", "*")
 rpl <- paste("@", 0:9, sep = "")
-noquote(rbind(code=rpl, char=bad))
 @ %def
 \item The \verb|@| character itself is encoded as \verb|@@|.
 \item All other printable characters, including the digits, are
   encoded as themselves.
-\item Finally the extension tag ``\texttt{.RData}'' is added to the
-  name without any \verb|@|-modification.\footnote{As well as being
-    useful, this turns out to be necessary on \textbf{Windows} where
-    some file names without extension, such as e.g.\ ``\texttt{con}''
-    are actually illegal.}
+\item Finally the extension tag ``\verb|@.RData|'' is added to the
+  name without further \verb|@|-modification.\footnote{As well as
+    being useful, this turns out to be necessary on \textsc{Windows}
+    where some very simple file names, such as e.g.\
+    ``\texttt{con}'' are actually illegal, \emph{even if given an extension}.}
 \end{itemize}
 This rather simple encoding has proved to be adequate for all genuine
 cases, at least in UTF-8 locales.  It has the virtue that most \R
@@ -644,7 +657,7 @@ The main differences with \texttt{ASOR} are as follows.
   described in Appendix~\ref{sec:technical} above.  This was needed to
   overcome some deficiencies in the old encoding leading to failures.
   For example objects such as \verb|con| and \verb|foo<-| can now be
-  cached on \textbf{Windows} which was not the case under the
+  cached on \textsc{Windows} which was not the case under the
   \texttt{ASOR} encoding.
 
   \textbf{IMPORTANT NOTE:} If a cache created under \texttt{ASOR} is

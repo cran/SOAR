@@ -11,7 +11,7 @@
       x <- gsub(bad[i], rpl[i], x, fixed = TRUE)
     x <- gsub(regex, "@\\1", x)
     x <- gsub("\t", "@@", x, fixed = TRUE)
-    paste(x, "RData", sep = ".")
+    paste(x, "@.RData", sep = "")
   }
 })
 
@@ -23,8 +23,9 @@
   regex <- paste("@(", paste(LETTERS, collapse = "|"), ")", sep = "")
 
   function (x) {
-    x <- sub("\\.RData$", "", x)
     x <- gsub("@@", "\t", x, fixed = TRUE)
+    x <- sub("@\\.RData$", "", x)
+    x <- sub("\\.RData$", "", x)
     x <- gsub(regex, "\\1", x)
     for (i in seq(along = bad))
       x <- gsub(rpl[i], bad[i], x, fixed = TRUE)
@@ -99,12 +100,12 @@ Attach <- function(lib = Sys.getenv("R_LOCAL_CACHE", unset = ".R_Cache"),
     if(!file.info(path)$isdir)
       stop(path, " exists but is not a directory!", call. = FALSE, domain = NA)
     fils <- .mostFiles(path)
-    if(any(i <- grep("\\.RData$", fils, invert = TRUE))) {
-      warning(paste("Converting", path, "from (assumed) ASOR format to SOAR"),
+    if(any(i <- grep("@\\.RData$", fils, invert = TRUE))) {
+      warning(paste("Converting", path, "from old filename format to new"),
               call. = FALSE)
       newF <- .enc(.dec(fils[i]))
       for(j in i) file.rename(file.path(path, fils[j]),
-                              file.path(path, newF[j]))    }  
+                              file.path(path, newF[j]))    }
   }
   if(uniquely)
     if(any(m <- (.pathAttributes() == path)))
@@ -133,7 +134,7 @@ Store <- function(..., list = character(0),
   }
   nam <- list
   if(!is.null(m <- match.call(expand.dots = FALSE)$...))
-    nam <- c(nam, 
+    nam <- c(nam,
              sapply(m, function(x)
                     switch(class(x),
                            name = deparse(x),
@@ -153,13 +154,13 @@ Store <- function(..., list = character(0),
     if(!file.info(path)$isdir)
       stop(path, " exists but is not a directory!", call. = FALSE, domain = NA)
     fils <- .mostFiles(path)
-    if(any(i <- grep("\\.RData$", fils, invert = TRUE))) {
-      warning(paste("Converting", path, "from (assumed) ASOR format to SOAR"),
+    if(any(i <- grep("@\\.RData$", fils, invert = TRUE))) {
+      warning(paste("Converting", path, "from old filename format to new"),
               call. = FALSE, domain = NA)
       newF <- .enc(.dec(fils[i]))
       for(j in i) file.rename(file.path(path, fils[j]),
                               file.path(path, newF[j]))
-    }  
+    }
   } else dir.create(path)
   for(n in nam) {
     no <- !exists(n, inherits = FALSE, envir = parent.frame())
@@ -193,7 +194,7 @@ Objects <- function(lib = Sys.getenv("R_LOCAL_CACHE", unset = ".R_Cache"),
                     lib.loc = Sys.getenv("R_LOCAL_LIB_LOC", unset = getwd()),
                     all.names = FALSE, pattern = ".*", readonly = FALSE) {
   if(class((x <- substitute(lib))) == "name")
-    lib <- deparse(x) else lib <- lib  
+    lib <- deparse(x) else lib <- lib
   if(!(file.exists(lib.loc) && file.info(lib.loc)$isdir))
     stop(lib.loc, " is not an existing directory.", call. = FALSE, domain = NA)
   path <- file.path(lib.loc, lib)
@@ -206,7 +207,7 @@ Objects <- function(lib = Sys.getenv("R_LOCAL_CACHE", unset = ".R_Cache"),
     }
 }
 
-ObjectsData <- .makeClone(Objects, Data)             
+ObjectsData <- .makeClone(Objects, Data)
 ObjectsUtils <- .makeClone(Objects, Utils)
 
 Remove <- function(..., list = character(0),
@@ -242,14 +243,14 @@ Remove <- function(..., list = character(0),
   if(length(nam) == 0) return()
   nam <- .enc(sort(unique(nam)))
   fils <- .mostFiles(path)
-  if(any(i <- grep("\\.RData$", fils, invert = TRUE))) {
-    warning(paste("Converting", path, "from (assumed) ASOR format to SOAR"),
+  if(any(i <- grep("@\\.RData$", fils, invert = TRUE))) {
+    warning(paste("Converting", path, "from old filename format to new"),
             call. = FALSE, domain = NA)
     newF <- .enc(.dec(fils[i]))
     for(j in i) file.rename(file.path(path, fils[j]),
                             file.path(path, newF[j]))
     fils <- .mostFiles(path)
-  }  
+  }
   mnam <- intersect(nam, fils)
   if(length(d <- setdiff(nam, mnam)) > 0)
     warning(gettextf("Object %s not found and hence not removed\n",
@@ -274,7 +275,7 @@ Search <- function () {
   for (j in 2:length(d)) {
     e <- parent.env(e)
     p <- attr(e, "path")
-    if (is.null(p)) 
+    if (is.null(p))
       p <- "" else p <- dirname(p)
     f <- c(f, p)
   }
