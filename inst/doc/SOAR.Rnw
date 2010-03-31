@@ -1,0 +1,702 @@
+\documentclass[12pt]{article}
+\usepackage{xspace,hyperref}
+\newcommand{\R}{\textbf{\textsf{R}}\xspace}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt}
+
+\title{Stored Object Caches for \R}
+\author{Bill Venables,
+CSIRO Mathematics, Informatics and Statistics\\
+Brisbane, Australia}
+\date{April, 2010}
+
+% \VignetteIndexEntry{Stored Object Caches for R}
+
+\SweaveOpts{keep.source=true}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+\newpage
+\section{Introduction}
+\label{sec:intro}
+
+When an object is created in \R, by default it remains in memory.  If
+the objects are large, or numerous, memory management can become an
+issue even on a modern computer with large central memory.  At the end
+of a session the objects in the global environment are usually kept in
+a single binary file in the working directory called \texttt{.RData}.
+When a new \R session begins with this as the initial working
+directory, the objects are loaded back into memory.  If the
+\texttt{.RData} file is large startup may be slow, and the memory can
+be under pressure again right from the start of the session.
+
+Objects need not be always held in memory.  The function \texttt{save}
+may be used to save objects on the disc in a file, typically with an
+\texttt{.RData} extension.  The objects may then be removed from
+memory and later recalled explicitly with the \texttt{load} function.
+The \texttt{SOAR}\footnote{\texttt{SOAR} is an acronym for the four
+  main functions of the package, \texttt{Store}, \texttt{Objects},
+  \texttt{Attach}, and \texttt{Remove}} package provides simple way to
+store objects on the disc, but in such a way that they remain visible
+on the search path as \emph{promises}, that is, if and when an object
+is needed again it is automatically loaded into memory.  It uses the
+same \emph{lazy loading} mechanism as packages, but the functionality
+provided here is more dynamic and flexible.
+
+The \texttt{SOAR} package is based on an earlier package of
+David~Brahm called \texttt{g.data}.  This earlier package was briefly
+described in \emph{R News}.  (See \cite{Rnews:Brahm:2002}).
+
+@
+<<echo=FALSE>>=
+require("SOAR")
+@ %def
+
+
+\section{Local stored object caches}
+\label{sec:localsoc}
+
+The \emph{working directory} for any \R session is the directory where
+by default \R will look for data sets or deposit text or graphical
+output.  It can be found from within the session using the function
+\texttt{getwd()}.  By a \emph{local stored object cache} we mean a
+directory, usually a sub-directory of the working directory, which
+will be used by \R to contain saved object \texttt{.RData} files.
+Users of \textbf{S-PLUS}, (a programming environment not unlike \R),
+will be familiar with the \texttt{.Data} sub-directory of the working
+directory which acts as a local stored object cache in precisely this
+sense.  These caches are created and used by \R itself, not the user
+directly.
+
+To specify the way a cache works it is helpful to give an example.
+
+@
+<<>>=
+## create some dummy data
+X <- matrix(rnorm(1000*50), 1000, 50)
+S <- var(X)
+Xb <- colMeans(X)
+Store(X)
+@ %def
+
+At this point, if the initial workspace is empty, the global
+environment contains the two objects \texttt{S} and \texttt{Xb}, and
+the matrix is stored on the disc in a local stored object cache.
+
+@
+<<strip.white=TRUE>>=
+objects()   ## or ls()
+find("X")
+@ %def
+
+Several things have happened.
+\begin{enumerate}
+\item A special sub-directory, called \verb|.R_Cache|, of the
+  working directory has been created, if necessary,
+\item The object \texttt{X} has been saved in the cache as an
+  \texttt{.RData} file, (with an encoded name, see later), and
+  \emph{removed} from the global environment,
+\item An image of the cache has been placed at position~2 of the
+  search path, also under the name ``\verb|.R_Cache|'',
+\item An object called ``\texttt{X}'' has been placed in position~2 of
+  the search path which is really a promise to load the real
+  \texttt{X} into position~2, as needed.
+\end{enumerate}
+The \texttt{SOAR} package provides a slightly enhanced version of the
+\texttt{search} function, for inspecting the search path.  As well as
+the entries, it shows the enclosing directories, where applicable.
+Such an enclosing directory is called the \texttt{lib.loc} for
+packages and similar entries.  We now continue the example:
+
+@
+<<>>=
+Store(Xb, S)
+Search()
+Objects()
+@ %def
+The \texttt{SOAR} function \texttt{Objects} is like the standard
+function \texttt{objects} (or equivalently \texttt{ls}), but applies
+only to stored object caches.  In addition to listing objects, it
+locates the cache on the search path beforehand using both its name and
+\texttt{lib.loc}.  As the position of the cache on the search path may
+wander as packages are added, and as there may be several caches on
+the search path under the same name, this is a useful feature.
+
+\subsection{Memory issues}
+\label{sec:memory}
+
+An important (but not the only) reason to use saved object caches is
+to release memory as much as possible.  It is useful to keep track of
+memory usage as an object is stored and retrieved by various
+operations in \R, which we now do with another small, artificial
+example.
+
+Memory usage is largely tracked by looking at the number of
+``\texttt{Vcells}'' currently in use.  This is a component of the
+output from the garbage collector:
+o@
+<<>>=
+vc <- gc(); vc ; v0 <- vc["Vcells", "used"]
+@ %def
+
+At this point there are \Sexpr{vc[2,1]} \texttt{Vcells} in
+use. Now create a large \R object and manipulate it, keeping track of
+what happens to the \texttt{Vcells} in use, as a difference from this
+base level.  We begin by defining a tiny function to pick out the
+relevant number from the \texttt{gc} output.
+
+@
+<<>>=
+Vcells <- function()
+  c(Vcells = gc()["Vcells", "used"])            ; Vcells()-v0
+bigX <- matrix(rnorm(1000^2), 1000, 1000)       ; Vcells()-v0
+Store(bigX)                                     ; Vcells()-v0
+d <- dim(bigX)                                  ; Vcells()-v0
+bigX[1,1] <- 0                                  ; Vcells()-v0
+Attach()                                        ; Vcells()-v0
+Store(bigX)                                     ; Vcells()-v0
+@ %def
+It is worth looking at this in some detail.
+\begin{itemize}
+\item Creating \texttt{bigX} in the global environment increases
+  memory usage by about $10^6$ cells, as expected.
+\item Storing the object reduces the cells in use to around the base
+  level again.
+\item Finding the dimension of \texttt{bigX} requires it to be loaded
+  into the cache, honoring the promise to do so.  Cell usage increases
+  by about $10^6$ cells again.
+\item Modifying \texttt{bigX}, in this case replacing its first entry
+  by zero, causes a \emph{second copy} of the object to be made in the
+  global environment.  Cell usage increases by a further $10^6$ cells.
+\item Using the \texttt{SOAR} function \texttt{Attach} re-establishes
+  the cache on the search path.  The object \texttt{bigX} at
+  position~2 of the search again becomes a promise to re-load rather
+  than the object itself, resulting in a \emph{reduction} in memory
+  usage of about $10^6$ cells.
+\item Finally, storing the modified \texttt{bigX} takes it out of
+  memory and places the new version in the cache.  The promise is now
+  to re-load the modified version and the original version is lost.
+\end{itemize}
+We can clear the cache on the disc using:
+@
+<<>>=
+Remove(bigX)                                   ; (Vcells()-v0)
+@ %def
+The effect on memory is insignificant as only the promise object has
+been removed.  The main effect is to remove an \texttt{.RData} file
+from the disc.
+
+\subsection{Specifying objects for storage or removal}
+\label{sec:specifying}
+
+The functions \texttt{Store} and \texttt{Remove} take as their
+main arguments a specification of objects to be stored or removed
+respectively.  There are four ways to do this, namely:
+\begin{enumerate}
+\item As \emph{unquoted names} of objects, such as \texttt{X},
+  \texttt{bigX} and the like.
+\item As \emph{explicit character strings} using any of the three
+  quotation styles allowed in \R, namely single, double or backtick
+  quotes,
+\item As \emph{an expression evaluating to a character string vector},
+  which gives the names of objects to be removed, e.g.\
+  \verb|objects(pattern = "^X")|, which would specify all objects
+  whose name started with \texttt{X}.
+\item As a \emph{character string vector} value for the argument
+  \texttt{list}.
+\end{enumerate}
+Hence
+@
+<<eval=FALSE>>=
+Store(objects())
+@ %def
+when issued at the command line would store all objects in the global
+environment whose names did not begin with a period.  This is a common
+idiom.  An almost equivalent way to do this would be
+@
+<<eval=FALSE>>=
+objs <- objects()
+Store(list = objs)
+@ %def
+In this case, however, the object \texttt{objs} would remain in the
+global environment.  Specification styles can be mixed, so a fully
+equivalent way would be
+@
+<<eval=FALSE>>=
+objs <- ls()
+Store(objs, list = objs)
+@ %def
+
+Also
+@
+<<eval=FALSE>>=
+Remove(Objects())
+@ %def
+would remove from the cache all objects whose names did not begin with
+a period.  This is seldom necessary but holds a certain appeal for
+some obsessively tidy minds.
+
+\subsection{\texttt{lib.loc} and \texttt{lib}}
+\label{sec:lib.loc.lib}
+
+All four functions, \texttt{Store}, \texttt{Objects}, \texttt{Attach}
+and \texttt{Remove} need to know where the cache is located on the
+disc.  This is done in two parts, similar to the way that package
+locations are specified, namely by giving the \emph{enclosing
+  directory}, known as the \texttt{lib.loc} and the \emph{cache name},
+or \texttt{lib}.
+
+For local stored object caches, the default \texttt{lib} is usually
+\verb|.R_Cache|.  More precisely, the default is either the value
+of the environment variable \verb|R_LOCAL_CACHE|, or
+\verb|.R_Cache| if this is unset.  Environment variables for \R can
+be set in the \R session using \texttt{Sys.setenv}, or more
+conveniently (if the setting is intended to be generally made) by
+placing an entry in a \texttt{.Renviron} file in the user's home
+directory.  Thus the following step from within \R itself
+@
+<<eval=FALSE>>=
+cat("\nR_LOCAL_CACHE=.R_Store\n",
+    file = "~/.Renviron", append=TRUE)
+@ %def
+will add a line to the \texttt{.Renviron} in the user's home directory
+(or create one if none currently exists) which will change the default
+local cache name from ``\verb|.R_Cache|'' to ``\verb|.R_Store|''
+permanently and generally for all four functions.
+
+Of course, \texttt{lib} names can be specified as additional named
+arguments in each of the functions, but some care needs to be given.
+For convenience, the \texttt{lib} argument may be given either as an
+\emph{unquoted name} or as an \emph{explicitly quoted} character
+string.  Hence
+@
+<<eval=FALSE>>=
+Attach(lib = ".R_Store")
+Attach(lib = .R_Store)
+@ %def
+are equivalent, but
+@
+<<eval=FALSE>>=
+lib <- ".R_Store"
+Store(X, Y, Z, lib = lib)
+@ %def
+would store three objects in a local cache called literally
+``\texttt{lib}''.\footnote{There is no particular reason to have the cache
+name begin with a period, but since they are NOT to be accessed
+directly by the user, doing so makes them conveniently out of sight in
+many contexts.}
+
+For local caches the \texttt{lib.loc} would normally be the current
+working directory, as given by \texttt{getwd()}, but users are free to
+vary this.  The actual default is the value of the environment
+variable \verb|R_LOCAL_LIB_LOC| or \texttt{getwd()} if this is unset.
+Again the user may change the default for all four functions by an
+entry in the file \verb|~/.Renviron|, but this would be unusual.
+
+Since directory names are usually \emph{not} syntactic \R names, the
+option of specifying them in the argument list as unquoted names is
+not available.
+
+The main reason to change the \texttt{lib.loc} for a local cache is to
+add the objects from some other working directory cache to the present
+session.  For example
+@
+<<eval=FALSE>>=
+Attach(lib.loc = "..")
+@ %def
+would attach the \verb|.R_Cache| directory from the parent of the
+current working directory, making those stored objects accessible to
+the present session as well.
+
+\section{Centrally stored object caches}
+\label{sec:central}
+
+In some cases objects can usefully be made available for multiple
+projects.  We term such caches as \emph{central} stored object caches,
+though they do not differ from local caches in any way other than
+in their preferred location.
+
+\subsection{\texttt{Data} and \texttt{Utils} variants}
+\label{sec:dataUtils}
+
+Each of the four primary functions as two variants, namely one with
+``\texttt{Data}'' and the other with ``\texttt{Utils}'' added to the
+name.  These are purely convenience functions which differ from the
+primary counterparts only in the default value for their \texttt{lib}
+and \texttt{lib.loc}.  The default values for these are as follows:
+\begin{description}
+\item[\texttt{lib.loc}] For all variants, the default \texttt{lib.loc}
+  is the value of the environment variable \verb|R_CENTRAL_LIB_LOC| or
+  the user's home directory if this is not set.
+  The user's home directory is found using \verb|path.expand("~")|.
+\item[\texttt{lib}] This differs for the two variant kinds.
+  \begin{itemize}
+  \item For \texttt{Data} variants the default \texttt{lib} is the
+    value of the environment variable \verb|R_CENTRAL_DATA|, or
+    \verb|.R_Data| if this is unset, and
+  \item For \texttt{Utuls} variants the default \texttt{lib} is the
+    value of the environment variable \verb|R_CENTRAL_UTILS|, or
+    \verb|.R_Utils| if this is unset.
+  \end{itemize}
+\end{description}
+
+The motivation for providing these variants is to give the user a
+convenient way of saving objects and making them generally visible
+across their \R session.  We envisage that the \texttt{Data} forms
+will be used for data sets and the \texttt{Utils} forms for utility
+functions.
+
+One function we may wish to store and make generally available is the
+\texttt{Vcells} memory checking function we used above.
+
+A simple but useful function to have available is the converse of the
+binary operator \verb|%in%|, to identify which elements are \emph{not}
+members of the set.  One way to make such an operator is:
+@
+<<eval=FALSE>>=
+`%ni%` <- Negate(`%in%`)
+@ %def
+If for some reason the user preferred to use \texttt{lsCache} instead
+of \texttt{Objects} a simple way to do this without butchering the
+source package\footnote{Users are free to butcher the source package,
+  of course, but if you do so, please \emph{do not re-distribute it},
+  there's a sport.} woule be
+@
+<<eval=FALSE>>=
+lsCache <- Objects
+@ %def
+These little utility functions may now be stored in the central
+utilities cache using:
+@
+<<eval=FALSE>>=
+StoreUtils(Vcells, `%ni%`, lsCache)
+@ %def
+Then in any future \R session
+@
+<<eval=FALSE>>=
+AttachUtils()
+@ %def
+would make \texttt{Vcells}, \verb|%ni%| and \texttt{lsCache}, in
+particular, available on demand.
+
+Similarly
+@
+<<eval=FALSE>>=
+AttachData()
+@ %def
+would make the central data object cache visible and available on
+demand as well.  Central data and utility object stores can be quite
+large without having an appreciable effect on memory, unless, of
+course, many large objects are required simultaneously.
+
+The motivation for using environment variables to specify the default
+values is purely one of convenience.  The user's home directory may be
+an appropriate \texttt{lib.loc} for the centrally stored object caches,
+but many users would already have a reserved directory for \R related
+resources, in particular the add-on packages (as opposed to those
+which come with the release of \R itself).  A suitable place for the
+centrally stored object caches might be alongside this package
+directory.  Thus a typical \verb|~/.Rprofile| might include entries
+such as
+\begin{verbatim}
+R_LIBS_USER=~/R/lib/library
+R_CENTRAL_LIB_LOC=~/R/lib/cache
+\end{verbatim}
+
+\subsection{Tricks with \texttt{.Rprofile}}
+\label{sec:rprofile}
+
+In addition to \texttt{.Renviron} if there is a file
+\texttt{.Rprofile} in the user's home directory it contains \R
+commands that are performed at startup for every \R
+session.\footnote{Unless there is a \texttt{.Rprofile} in the current
+  working directory, which will override one in the home directory.}
+
+The \texttt{.Rprofile} is intended to customise the working \R
+environment, but this should be done with some care, particularly if
+the user is working as a member of a team and has to share \R scripts.
+It is very easy to make \R scripts that work in some customised
+contexts but fail in puzzling ways on another machine where the
+customisations are different.
+
+For users who will want to use \texttt{SOAR} in most sessions it is
+inconvenient to have to remember to put \texttt{library(SOAR)} at the
+head of every script.  One way round this is to add the line
+\begin{verbatim}
+options(defaultPackages = c(getOption("defaultPackages"), "SOAR"))
+\end{verbatim}
+to \verb|~/.Rprofile|.  This will mean that \texttt{SOAR} is included
+in the list of packages to be loaded at startup.
+
+Another useful addition to \verb|~/.Rprofile| would be
+\begin{verbatim}
+SOAR::AttachUtils()
+\end{verbatim}
+which will have two effects.  Firstly it will ensure that the
+utilities central cache is part of the search path at startup, and
+secondly it will cause the \texttt{SOAR} package itself to be loaded,
+making the above change in options unnecessary.
+
+Yet another customisation would be to use \R autoloads.  If the lines
+\begin{verbatim}
+autoload("Store", "SOAR")
+autoload("Objects", "SOAR")
+autoload("Attach", "SOAR")
+autoload("Remove", "SOAR")
+autoload("Search", "SOAR")
+\end{verbatim}
+were added to \verb|~/.Rprofile|, it would place objects in the
+\texttt{Autoloads} entry of the search path which would mean that a
+reference to any of the four primary functions, or \texttt{Search},
+would cause the \texttt{SOAR} package to be loaded automatically.  A
+reference to one of the variants, however, would still require the
+package to be loaded explicitly with \texttt{library} or \texttt{require}.
+
+For the more intrepid user it is easy to make and add a full list
+with, for example:
+@
+<<eval=FALSE>>=
+lst <- paste('autoload("', objects("package:SOAR"),
+             '", "SOAR")\n', sep="")
+cat("\n", lst, sep="", file = "~/.Rprofile", append = TRUE)
+@ %def
+In this case using any (exported) function from \texttt{SOAR} would
+cause the package to be loaded automatically, if not already.
+
+\section{Scripts or saved data objects?}
+\label{sec:scripts}
+
+While it is convenient to carry objects over from one session to
+another, particularly during the period where an analysis is being
+developed, it can be a mistake to rely on \R data objects gradually
+severing the link with the primary sources of the data.  We would
+encourage users to make and keep scripts which construct all important
+data sets and analyses from primary sources and to be able to
+re-construct the entire process from them.
+
+Stored object caches are a convenience intended to provide a way of
+managing memory, primarily, but also for sharing objects between
+sessions.
+
+Objects placed in the central utilities directory would usually
+include functions on test prior to collecting them into coherent
+groups and making packages from them.  As yet there is not neat way of
+documenting the objects in stored object caches, which is one reason
+to aim for packages as a more satisfactory and permanent way of
+holding such information.
+
+\newpage
+\appendix
+
+\section{Some technical details}
+\label{sec:technical}
+
+\paragraph*{Structure of the cache}
+A cache directory consists of \texttt{.RData} files each corresponding
+to a single stored \R object.  The name of the file is related to the
+name of the object itself, but is \emph{encoded} as some file systems
+have restrictions on file names.  For example in \textbf{Windows} file
+names are case insensitive whereas in \R object names are case
+sensitive.  Details of the encoding are given below.
+
+Users are strongly advised \emph{not} to access the files in the cache
+directory other than through \R.  Manual changes to the cache, and in
+particular, extra files or sub-directories in the cache directory will
+almost certainly cause problems when the cache is used again by the
+\texttt{SOAR} package, from which recovery may be very difficult.
+
+\paragraph*{Operation of the cache}
+When an existing cache is attached to the search path, as may be done
+explicitly by \texttt{Attach} or implicitly with \texttt{Store},
+\texttt{Objects} or \texttt{Remove}, the following steps take place.
+\begin{itemize}
+\item The names of the files in the cache directory, apart from
+  ``\texttt{.}'' and ``\texttt{..}'', are decoded into object names,
+\item An initially empty \R environment is attached to the search
+  path, into which objects of the same name as those stored in the
+  cache are placed.  These objects are promises, created by calls to
+  \texttt{delayedAssign}, to load the corresponding entire object into
+  the environment on demand.
+\end{itemize}
+
+Any reference to an object in the cache thus precipitates a
+\texttt{load} operation, bringing the entire object into central
+memory and replacing the promise in the attached cache.
+
+Any change to an object in the cache causes a further copy of it to be
+loaded into the appropriate working environment to accept the
+changes.  If, for example, the object is changed at the command line,
+this extra copy will be in the global environment.
+
+Using \texttt{Attach} to re-attach a cache will reinstate all objects
+as promises again, thus freeing any memory that has been taken up by
+automatic loading of entire objects.
+
+Storing an object with \texttt{Store} will (by default) remove it from
+the current working environment, store it in the cache directory and
+reinstate the object in the attached cache as a promise.
+
+Removing objects from a cache using \texttt{Remove} clears both the
+promise from the attached cache \emph{and} the corresponding
+\texttt{.RData} file from the cache directory.  Thus the removal is
+permanent.
+
+\paragraph*{Birth and death of caches}
+If reference is made by any of the four main functions to a cache that
+does not presently exist, the cache directory is created (or, more
+precisely \emph{will be created} when any object is stored there)
+and an empty cache is attached to the search path.  If, however,
+\texttt{Attach} is used for this purpose a warning is issued that an
+empty cache has been attached.  This is because it is never necessary
+to create a cache with \texttt{Attach}, so the user has most likely
+made a typo.
+
+If all objects are removed from a cache using, for example,
+@
+<<eval=FALSE>>=
+Remove(Objects())
+@ %def
+the cache directory is \emph{not} removed.  Removing empty cache
+directories, if need be, should be done using normal file system
+operations outside \R itself.
+
+\paragraph*{File name encoding}
+The names for \texttt{.RData} files in the cache directory are encoded
+from the names of the objects themselves as follows:
+\begin{itemize}
+\item We assume that object names consist only of printable
+  characters.
+\item Lower case letters are encoded as themselves.
+\item Upper case letters are encoded by preceding them with an
+  \verb|@| character.
+\item There are 10 other characters which are known to be
+  problematical if used in file names on some operating systems.
+  These are encoded as \verb|@0|, \dots, \verb|@9|.  The
+  correspondence is as shown below in \R code:
+@
+<<>>=
+bad <- c(" ", "<", ">", ":", "\"", "/", "\\", "|", "?", "*")
+rpl <- paste("@", 0:9, sep = "")
+noquote(rbind(code=rpl, char=bad))
+@ %def
+\item The \verb|@| character itself is encoded as \verb|@@|.
+\item All other printable characters, including the digits, are
+  encoded as themselves.
+\item Finally the extension tag ``\texttt{.RData}'' is added to the
+  name without any \verb|@|-modification.\footnote{As well as being
+    useful, this turns out to be necessary on \textbf{Windows} where
+    some file names without extension, such as e.g.\ ``\texttt{con}''
+    are actually illegal.}
+\end{itemize}
+This rather simple encoding has proved to be adequate for all genuine
+cases, at least in UTF-8 locales.  It has the virtue that most \R
+objects in the cache can be easily recognised from the file name at a
+glance, which was a distinct advantage during debugging.
+
+\section{Some packages with a similar functionality}
+\label{sec:similarPackages}
+
+As mentioned previously, David Brahm's \texttt{g.data} package
+(\cite{Rnews:Brahm:2002}) was antecedent to the present package.  It
+offers effectively the same functionality as \texttt{SOAR}, but the
+usage is rather different.  Users may wish to compare the two.
+
+Roger Peng's package \texttt{filehash}, which provides \R with hash
+files also allows objects to be stored on the disc and recalled
+automatically as needed.  It uses the \texttt{makeActiveBinding}
+mechanism rather than the \texttt{delayedAssign} mechanism used by
+\texttt{SOAR} and \texttt{g.data}, which has some advantages, but at a
+slightly increased overhead time cost.  There are strengths and
+weaknesses in both approaches and future versions of SOAR may offer a
+\texttt{makeActiveBinding} mechanism as an alternative to
+\texttt{delayedAssign} particularly for very large objects.  For a
+discussion of the \texttt{filehash} package,
+see~\cite{Rnews:Peng:2006}.
+
+Mark Bravington's intricate and ingenious package \texttt{mvbutils}
+also offers a \texttt{makeActiveBinding} mechanism to cache objects
+through the function \texttt{mlazy}.  Users should consult the help
+information for \texttt{mvbutils} for further details.  This package
+has not yet been described in \emph{R News} or the \emph{R Journal},
+but for an example of the Bravington style, readers may wish to look
+at his very effective \texttt{debug} package, described
+in~\cite{Rnews:Bravington:2003}.
+
+\section{Links with \texttt{ASOR}: help for old friends}
+\label{sec:ASOR}
+
+A precursor to the \texttt{SOAR} package was the package
+\texttt{ASOR}, which was never released through CRAN, but has been in
+fairly widespread trial use for some time.  The name-change was made
+for the officially released package to draw attention to the fact that
+there are some important differences between it and \texttt{ASOR},
+though there is a large degree of backward
+compatibility.\footnote{Another reason to change the name is that
+  speakers with a sufficiently broad Australian accent used to
+  pronounce the old package name as ``eyesore''.}
+
+The main differences with \texttt{ASOR} are as follows.
+\begin{itemize}
+\item There has been an extension to the file name encoding, as
+  described in Appendix~\ref{sec:technical} above.  This was needed to
+  overcome some deficiencies in the old encoding leading to failures.
+  For example objects such as \verb|con| and \verb|foo<-| can now be
+  cached on \textbf{Windows} which was not the case under the
+  \texttt{ASOR} encoding.
+
+  \textbf{IMPORTANT NOTE:} If a cache created under \texttt{ASOR} is
+  attached, directly or indirectly with \texttt{SOAR}, \emph{the file
+    names will be re-encoded under the new scheme}, with a warning
+  that this is taking place.  At this point the cache will not be
+  readable with \texttt{ASOR} functions: there is no easy road back.
+  However this is a quick and simple operation and has proved to be
+  very reliable.  Nevertheless users should take to heart the advice
+  given in sub-section~\ref{sec:scripts} on page~\pageref{sec:scripts}
+  and make sure that they have scripts available to re-create all
+  important \R objects rather than relying solely on stored object
+  caches.
+\item There has been a change to the default local stored object cache
+  from \verb|.R_Store| to \verb|.R_Cache|.  This is partly to reflect
+  the change in terminology, but also to make it easier for people to
+  operate with \texttt{ASOR} for a while longer while feeling their
+  way with \texttt{SOAR}, if they so wish.  It could become very
+  confusing if both \texttt{ASOR} and \texttt{SOAR} packages were in
+  use in the same \R session.  Users are warned against this.
+
+  There has been effectively no change to the default \texttt{lib}
+  names for the centrally stored object caches.\footnote{The
+    \texttt{Data} and \texttt{Utils} variants did exist in
+    \texttt{ASOR} but were largely unadvertised features and as far as
+    I know I am the only person who knew how to use them!}
+\item There has been a change to the way the default \texttt{lib} and
+  \texttt{lib.loc} names are specified, now using environment
+  variables.  This is a more flexible system than the previous one and
+  offers a way for users to prescribe their own preferences in this
+  regard in a simple and global way.
+\item The functions \texttt{Save}, \texttt{SaveData} and
+  \texttt{SaveUtils} have been removed.  These were complete aliases
+  for the corresponding forms with \texttt{Store}.  This is because
+  there is already a function \texttt{Save} in the \texttt{Hmisc}
+  package.\footnote{Originally \texttt{ASOR} only had the
+    \texttt{Save} forms, but the \texttt{Store} forms were added as a
+    preferable alternative when the author became aware of the clash
+    with \texttt{Hmisc}.  The \texttt{Save} forms have now passed
+    effectively from deprecated to defunct.}
+\item The function \texttt{Search} has been added, mainly to provide a
+  way for users to separate multiple stored object caches on the
+  search path with the same primary name, but with different
+  \texttt{lib.loc}s.
+\end{itemize}
+
+
+
+
+\bibliographystyle{plain}
+\bibliography{refs}
+
+\end{document}
+
+% LocalWords:  backtick customisation recognised
