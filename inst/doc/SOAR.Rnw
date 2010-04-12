@@ -5,21 +5,22 @@
 \setlength{\parskip}{6pt}
 
 \title{Stored Object Caches for \R}
-\author{Bill Venables,
+\author{Bill Venables,\\
 CSIRO Mathematics, Informatics and Statistics\\
 Brisbane, Australia}
 \date{April, 2010}
 
 % \VignetteIndexEntry{Stored Object Caches for R}
 
-\SweaveOpts{keep.source=true}
+\SweaveOpts{keep.source=true,strip.white=true}
 
 \begin{document}
 
 \maketitle
 
-\tableofcontents
 \newpage
+
+\tableofcontents
 \section{Introduction}
 \label{sec:intro}
 
@@ -50,10 +51,10 @@ The \texttt{SOAR} package is based on an earlier package of
 David~Brahm called \texttt{g.data}.  This earlier package was briefly
 described in \emph{R News}.  (See \cite{Rnews:Brahm:2002}).
 
-@
-<<echo=FALSE>>=
-require("SOAR")
-@ %def
+% @
+% <<echo=FALSE>>=
+% require("SOAR")
+% @ %def
 
 
 \section{Local stored object caches}
@@ -74,11 +75,16 @@ directly.
 To specify the way a cache works it is helpful to give an example.
 
 @
-<<>>=
+<<strip.white=false>>=
+## attach the package, checking that it is installed
+stopifnot(require("SOAR"))
+
 ## create some dummy data
 X <- matrix(rnorm(1000*50), 1000, 50)
 S <- var(X)
 Xb <- colMeans(X)
+
+## and store part of it in the default cache
 Store(X)
 @ %def
 
@@ -109,7 +115,11 @@ The \texttt{SOAR} package provides a slightly enhanced version of the
 \texttt{search} function, for inspecting the search path.  As well as
 the entries, it shows the enclosing directories, where applicable.
 Such an enclosing directory is called the \texttt{lib.loc} for
-packages and similar entries.  We now continue the example:
+packages and similar entries.  We now continue the
+example:\footnote{Note that during the construction of a package
+  vignette, such as this one, the newly formed package is installed in
+  a temporary directory.  This explains the unusual-looking
+  \texttt{lib.loc} for \texttt{package:SOAR} below.}
 
 @
 <<>>=
@@ -173,7 +183,7 @@ It is worth looking at this in some detail.
   global environment.  Cell usage increases by a further $10^6$ cells.
 \item Using the \texttt{SOAR} function \texttt{Attach} re-establishes
   the cache on the search path.  The object \texttt{bigX} at
-  position~2 of the search again becomes a promise to re-load rather
+  position~2 reverts to being a promise to re-load rather
   than the object itself, resulting in a \emph{reduction} in memory
   usage of about $10^6$ cells.
 \item Finally, storing the modified \texttt{bigX} takes it out of
@@ -315,9 +325,13 @@ the present session as well.
 \label{sec:central}
 
 In some cases objects can usefully be made available for multiple
-projects.  We term such caches as \emph{central} stored object caches,
-though they do not differ from local caches in any way other than
-in their preferred location.
+projects.  One way to do this is to make the collection of objects
+into a package.  Prior to making a formal package, though, an
+intermediate possibility is to store the objects in a cache directory
+and make it available in some easy way from any working directory on
+the same machine (or local area network).  We term such caches as
+\emph{central} stored object caches, though they do not differ from
+local caches in any way other than in their preferred location.
 
 \subsection{\texttt{Data} and \texttt{Utils} variants}
 \label{sec:dataUtils}
@@ -363,7 +377,7 @@ If for some reason the user preferred to use \texttt{lsCache} instead
 of \texttt{Objects} a simple way to do this without butchering the
 source package\footnote{Users are free to butcher the source package,
   of course, but if you do so, please \emph{do not re-distribute it},
-  there's a sport.} woule be
+  there's a sport.} would be
 @
 <<eval=FALSE>>=
 lsCache <- Objects
@@ -399,7 +413,7 @@ but many users would already have a reserved directory for \R related
 resources, in particular the add-on packages (as opposed to those
 which come with the release of \R itself).  A suitable place for the
 centrally stored object caches might be alongside this package
-directory.  Thus a typical \verb|~/.Rprofile| might include entries
+directory.  Thus a typical \verb|~/.Renviron| might include entries
 such as
 \begin{verbatim}
 R_LIBS_USER=~/R/lib/library
@@ -415,12 +429,12 @@ commands that are performed at startup for every \R
 session.\footnote{Unless there is a \texttt{.Rprofile} in the current
   working directory, which will override one in the home directory.}
 
-The \texttt{.Rprofile} is intended to customise the working \R
+The \texttt{.Rprofile} is intended to customize the working \R
 environment, but this should be done with some care, particularly if
 the user is working as a member of a team and has to share \R scripts.
-It is very easy to make \R scripts that work in some customised
-contexts but fail in puzzling ways on another machine where the
-customisations are different.
+It is very easy to make \R scripts that work in some customized
+contexts but fail in puzzling ways elsewhere where the customizations
+are different.
 
 For users who will want to use \texttt{SOAR} in most sessions it is
 inconvenient to have to remember to put \texttt{library(SOAR)} at the
@@ -440,7 +454,7 @@ autoload("Attach", "SOAR")
 autoload("Remove", "SOAR")
 autoload("Search", "SOAR")
 \end{verbatim}
-to \verb|~/.Rprofile|, then if any of these five functions are used,
+to \verb|~/.Rprofile|, then if any of these five functions is used,
 the \texttt{SOAR} package is automatically attached to the search
 path, no questions asked.  This is done by placing dummy
 \texttt{autoload} objects in the \texttt{Autoload} entry on the search
@@ -448,39 +462,40 @@ path.  These are promises like delayed assignments, but rather than
 loading objects into memory on demand, they attach the specified
 package on to the search path when the function in question is invoked.
 
-With these autoloads in place we can add further lines to
-\verb|~/.Rprofile| such as:
+We can add further lines to \verb|~/.Rprofile| such as:
 \begin{verbatim}
 SOAR::AttachUtils()
 \end{verbatim}
 which will ensure that the central utilities cache is part of the
-search path at startup. We need the double colon construction here to
-let the interpreter know where to fine the function
-\texttt{AttachUtils}.  However these variants on the main functions
-with \texttt{Data} or \texttt{Utils} tacked on to the end of their
-names are front-ends to the basic functions, and actually morph into a
-call to the relevant basic function.  In turn, the basic function
-causes the package to be loaded through the autoload.  So a
-side-effect will be that \texttt{SOAR} will be loaded on the search
-path at startup as well, just before the \verb|.R_Utils| cache.
+search path at startup, \emph{without} attaching the \texttt{SOAR}
+package itself (though it is ``loaded'' rather than being
+attached). We need the double colon construction here to let the
+interpreter know where to fine the function \texttt{AttachUtils}.
+Note that once a cache has been attached to the search path it is not
+necessary for the \texttt{SOAR} package also to be attached for it to
+work.  With the autoloads in place, however, an invocation of any of
+the five functions will cause the package to be attached.
 
 For the more intrepid user it is easy to make and add a full list of
 possible autoloads for any package and add it to \verb|~/.Rprofile|
 from within \R itself using, for example:
 @
 <<eval=FALSE>>=
-if(require(SOAR)) {
+if(require("SOAR")) {
     lst <- paste('autoload("', objects("package:SOAR"),
                  '", "SOAR")\n', sep="")
     cat("\n", lst, sep="", file = "~/.Rprofile", append = TRUE)
 }
 @ %def
-Now using \texttt{any} (exported) function from \texttt{SOAR} would
-cause the package to be loaded automatically, if not already.  This
+Now using \emph{any} (exported) function from \texttt{SOAR} would
+cause the package to be loaded automatically, if not already.  (This
 sort of dodge can rapidly cause \texttt{.Rprofile} to become very long
-and bulky, of course!)
+and unwieldy, of course!)
 
-\section{Scripts or saved data objects?}
+\section{Tips, warnings and gratuitous advice}
+\label{sec:gratuitous}
+
+\subsection{Scripts or saved data objects?}
 \label{sec:scripts}
 
 While it is convenient to carry objects over from one session to
@@ -501,6 +516,71 @@ groups and making packages from them.  As yet there is not neat way of
 documenting the objects in stored object caches, which is one reason
 to aim for packages as a more satisfactory and permanent way of
 holding such information.
+
+\subsection{\textsc{Windows} and other traps}
+\label{sec:traps}
+
+It is important to realise the \texttt{lib} and \texttt{lib.loc} both
+specify directories, or `folders' for the operating system.  Some
+operating systems have rather arbitrary and sometimes arcane
+restrictions on the file names which are allowed.  Consider the
+following artificial example, due to Nick Ellis:
+@
+<<eval=FALSE>>=
+x <- 1
+Store(x, lib = "A")
+x <- 2
+Store(x, lib = "a")
+@ %def
+On most operating systems this will, if necessary, create two local
+caches named \texttt{"A"} and \texttt{"a"} and store the value
+\texttt{1} for \texttt{x} in the first and the value \texttt{2} for
+\texttt{x} in the second.  On the search path the second will sit
+ahead of the first, of course.
+
+On \textsc{Windows}, because file and folder names are \emph{case
+  insensitive} the result will be quite different.  If the local cache
+\texttt{"A"} is not already in existence the first \texttt{Store} will
+create it and cache the value \texttt{1} for \texttt{x} in it, as
+expected.  The second \texttt{Store} will then attach a cache
+\texttt{"a"} to the search path and store the value \texttt{2} for
+\texttt{x}.  Because of case insensitivity, however, the cache
+\texttt{"A"} and \texttt{"a"} will define \emph{\textbf{the same cache
+  folder}}, and hence the second \texttt{Store} will replace the value
+for \texttt{x} stored in the first \texttt{Store} operation.  There
+will be two entries on the search path labelled \texttt{"A"} and
+\texttt{"a"}, but they will effectively point to the same cache.
+
+One way round this might have been to encode the folder name for the
+cache on the disc, but as these cache names are used in code and are
+to be seen, occasionally, by the user, having a disparity between what
+the user sees in the code and what she or he sees in the file system
+will introduce another potential difficulty.
+
+Working with multiple local caches in the same working directory is a
+perfectly natural and often useful thing to do.  Users working on
+systems \emph{other than \textsc{Windows}} can do so with
+\emph{relative} impunity, but \textsc{Windows} users need to be
+constantly aware of the limitations placed on file names in that
+operating system, and their consequences.
+
+The problem is not even entirely confined to \textsc{Windows}.  For
+example on some, but not all, external memory devices and memory sticks a case
+insensitive file name system seems to be imposed, even under
+\textsc{Linux}.\footnote{On such devices, however, it is still
+  possible to coin file names under \textsc{Linux}, for example, that
+  are illegal names under \textsc{Windows}, such as the example we
+  often cite here, ``\texttt{con}''.  Such files then become
+  inaccessible when the external memory device is used with a
+  \textsc{Windows} operating system.}
+
+To minimise the possibility of this kind of adverse outcome, then, we
+strongly recommend that on \emph{all} operating systems users adopt
+some cache naming protocol that will guard against it.  For example,
+the default names for caches are all ``capitalized'', such as
+\verb|.R_Cache| or \verb|.R_Utils|.  If caches are \emph{always} named
+and referred to by such a scheme, the problem of case insensitivity
+will not arise.
 
 \newpage
 \appendix
@@ -577,7 +657,7 @@ the cache directory is \emph{not} removed.  Removing empty cache
 directories, if need be, should be done using normal file system
 operations outside \R itself.
 
-\paragraph*{File name encoding}
+\paragraph*{File name encoding.}
 The names for \texttt{.RData} files in the cache directory are encoded
 from the names of the objects themselves as follows:
 \begin{itemize}
@@ -589,11 +669,16 @@ from the names of the objects themselves as follows:
 \item There are 10 other characters which are known to be
   problematical if used in file names on some operating systems.
   These are encoded as \verb|@0|, \dots, \verb|@9|.  The
-  correspondence is as shown below in \R code:
+  correspondence is as shown below in \R code output:
 @
-<<>>=
+<<echo=FALSE>>=
 bad <- c(" ", "<", ">", ":", "\"", "/", "\\", "|", "?", "*")
 rpl <- paste("@", 0:9, sep = "")
+
+out <- rbind("Code:" = rpl, "Character:" = bad)
+colnames(out) <- rep("    ", 10)
+noquote(format(out, justify = "right"))
+rm(bad, rpl, f, out)
 @ %def
 \item The \verb|@| character itself is encoded as \verb|@@|.
 \item All other printable characters, including the digits, are
@@ -629,14 +714,27 @@ weaknesses in both approaches and future versions of SOAR may offer a
 discussion of the \texttt{filehash} package,
 see~\cite{Rnews:Peng:2006}.
 
-Mark Bravington's intricate and ingenious package \texttt{mvbutils}
-also offers a \texttt{makeActiveBinding} mechanism to cache objects
-through the function \texttt{mlazy}.  Users should consult the help
-information for \texttt{mvbutils} for further details.  This package
-has not yet been described in \emph{R News} or the \emph{R Journal},
-but for an example of the Bravington style, readers may wish to look
-at his very effective \texttt{debug} package, described
-in~\cite{Rnews:Bravington:2003}.
+Mark Bravington's package \texttt{mvbutils} also offers a
+\texttt{makeActiveBinding} mechanism to cache objects through the
+function \texttt{mlazy}.  Users should consult the help information
+for \texttt{mvbutils} for further details.  This package has not yet
+been formally described in any published article, but his article on
+his \texttt{debug} package, originally part of \texttt{mvbutils}, can
+be found in \emph{R News}.  See~\cite{Rnews:Bravington:2003}).
+
+Henrik Bengtsson has kindly drawn to my attention the \texttt{R.cache}
+package, which offers yet another related method of working with
+objects out of memory in collections called \emph{caches}, as do we.
+The usage of \texttt{R.cache} is rather different from that of
+\texttt{SOAR}, though.  Users may wish to compare.
+
+For the special problem of dealing with large, very large or even huge
+objects, there is a special section in the \R task view on high
+performance computing called \emph{Large memory and out-of-memory
+  data} which focuses on the topic and lists many more key
+packages. (Task views can be found on the \textsc{CRAN} website
+\url{cran.r-project.org}.)
+
 
 \section{Links with \texttt{ASOR}: help for old friends}
 \label{sec:ASOR}
@@ -682,8 +780,8 @@ The main differences with \texttt{ASOR} are as follows.
   There has been effectively no change to the default \texttt{lib}
   names for the centrally stored object caches.\footnote{The
     \texttt{Data} and \texttt{Utils} variants did exist in
-    \texttt{ASOR} but were largely unadvertised features and as far as
-    I know I am the only person who knew how to use them!}
+    \texttt{ASOR} but were largely unadvertized features and to the
+    author's knowledge, the author was the only person to use them.}
 \item There has been a change to the way the default \texttt{lib} and
   \texttt{lib.loc} names are specified, now using environment
   variables.  This is a more flexible system than the previous one and

@@ -1,0 +1,29 @@
+	o SOAR v0.99-3.  Changes to V0.99-2:
+	  - minor coding change to the Data and Utils variants to
+	    correct a potential enigma with their operation.
+	    Invisible to the user.
+
+	  - The function Search now has an argument, 'abbrev', which
+	    allows the user to lop off the leading section of long
+	    lib.loc names.  The default is not to lop.  See help file
+	    for more details.
+	    
+	  - Many changes, extensions and clarifications in the
+	    vignette.  The most important change is a new sub-section
+	    on "Windows and other traps" drawing attention to a
+	    potential problem with SOAR on Windows filesystems caused
+	    by file-name case insensitivity.  As the problem is not
+	    exclusively confined to the Windows operating system, all
+	    users are urged to read and take in this section before
+	    proceeding to use the package.
+
+	o SOAR v0.99-2 released on CRAn on 2001-04-07. This corrected
+	  a potentially serious bug (on Windows alone) and required a
+	  change to the encoding scheme.  Caches created either with
+	  ASOR or with SOAR v0.99-1 are automatically converted to
+	  meet the new file name encoding scheme
+
+	o SOAR v0.99-1 released on CRAN on 2010-04-06. When used with
+	  caches created with the unofficial pre-release 'ASOR'
+	  package, these caches are (permanently) changed to meet the
+	  new file name encoding scheme of SOAR

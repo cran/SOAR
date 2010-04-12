@@ -23,8 +23,8 @@ SOAR: Utility functions for memory management
   \tabular{ll}{
     Package: \tab SOAR\cr
     Type: \tab Package\cr
-    Version: \tab 0.99-2\cr
-    Date: \tab 2010-03-31\cr
+    Version: \tab 0.99-3\cr
+    Date: \tab 2010-04-12\cr
     License: \tab GPL-2 or GPL-3\cr
     LazyLoad: \tab yes\cr
   }

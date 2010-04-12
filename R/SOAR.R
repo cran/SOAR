@@ -75,13 +75,13 @@
   f <- function(...) {}
   body(f) <- substitute({
     Call <- match.call()
-    Call[[1]] <- as.name(NAME)
+    Call[[1]] <- quote(SOAR::NAME)
     if(is.null(Call$lib))
       Call$lib <- Sys.getenv(LIB, unset = WHICH)
     if(is.null(Call$lib.loc))
       Call$lib.loc <- Sys.getenv(LIB_LOC, unset = path.expand("~"))
     eval.parent(Call)
-  }, list(NAME = dsn,
+  }, list(NAME = as.name(dsn),
           WHICH = paste(".R", dsw, sep = "_"),
           LIB = paste(".R_CENTRAL", toupper(dsw), sep = "_"),
           LIB_LOC = "R_CENTRAL_LIB_LOC"))
@@ -267,23 +267,40 @@ Remove <- function(..., list = character(0),
 RemoveData <- .makeClone(Remove, Data)
 RemoveUtils <-.makeClone(Remove, Utils)
 
-Search <- function () {
-  d <- search()
-  wd <- getwd()
-  f <- ""
-  e <- .GlobalEnv
-  for (j in 2:length(d)) {
-    e <- parent.env(e)
-    p <- attr(e, "path")
-    if (is.null(p))
-      p <- "" else p <- dirname(p)
-    f <- c(f, p)
-  }
-  f[length(f)] <- dirname(system.file())
-  rhome <- gsub("\\\\", "/", R.home())
-  home <- gsub("\\\\", "/", path.expand("~"))
-  f <- gsub(wd, ".", gsub(rhome, "R_HOME", gsub(home, "~", f)))
-  d <- cbind(name = d, lib.loc = f)
-  dimnames(d)[[1]] <- substring(100 + 1:nrow(d), 2)
-  noquote(d)
-}
+Search <- local({
+    .zf <- function (s)
+        paste(substring(paste(rep(0,
+                                  (m <- max(n <-
+                                            nchar(s <-
+                                                  as.character(s))))),
+                              collapse = ""), 0, m - n), s, sep = "")
+    function (abbrev = FALSE) {
+        d <- search()
+        wd <- getwd()
+        f <- ""
+        e <- .GlobalEnv
+        for (j in 2:length(d)) {
+            e <- parent.env(e)
+            p <- attr(e, "path")
+            if (is.null(p))
+                p <- "" else p <- dirname(p)
+            f <- c(f, p)
+        }
+        f[length(f)] <- dirname(system.file())
+        rhome <- gsub("\\\\", "/", R.home())
+        home <- gsub("\\\\", "/", path.expand("~"))
+        f <- gsub(wd, ".", gsub(rhome, "R_HOME", gsub(home, "~", f)))
+        abbrev <- abbrev[1]
+        if(is.logical(abbrev) && abbrev)
+          abbrev <- 50
+        else
+          abbrev <- as.numeric(abbrev)
+        if(!is.na(abbrev) && abbrev > 0)
+          if(any(w <- ((n <- nchar(f)) > abbrev))) {
+            f[w] <- paste("...", substring(f[w], n[w]-abbrev+1, n[w]))
+        }
+        d <- cbind(name = d, lib.loc = f)
+        dimnames(d)[[1]] <- .zf(1:nrow(d))
+        noquote(d)
+    }
+})
