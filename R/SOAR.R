@@ -83,7 +83,7 @@
     eval.parent(Call)
   }, list(NAME = as.name(dsn),
           WHICH = paste(".R", dsw, sep = "_"),
-          LIB = paste(".R_CENTRAL", toupper(dsw), sep = "_"),
+          LIB = paste("R_CENTRAL", toupper(dsw), sep = "_"),
           LIB_LOC = "R_CENTRAL_LIB_LOC"))
   f
 }
