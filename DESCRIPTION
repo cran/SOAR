@@ -1,8 +1,8 @@
 Package: SOAR
 Type: Package
 Title: Memory management in R by delayed assignments
-Version: 0.99-4
-Date: 2010-09-23
+Version: 0.99-5
+Date: 2010-12-20
 Author: Bill Venables, based on original code by David Brahm
 Maintainer: Bill Venables <Bill.Venables@CSIRO.au>
 Depends: R (>= 2.9.0)
@@ -11,5 +11,5 @@ Description: Allows objects to be stored on disc and automatically
 License: GPL-2 | GPL-3
 LazyLoad: yes
 Repository: CRAN
-Date/Publication: 2010-09-23 06:14:01
-Packaged: 2010-09-23 01:03:06 UTC; ven037
+Packaged: 2010-12-20 06:38:05 UTC; ven037
+Date/Publication: 2010-12-20 07:53:23

@@ -76,10 +76,10 @@
   body(f) <- substitute({
     Call <- match.call()
     Call[[1]] <- quote(SOAR::NAME)
-    if(is.null(Call$lib))
-      Call$lib <- Sys.getenv(LIB, unset = WHICH)
-    if(is.null(Call$lib.loc))
-      Call$lib.loc <- Sys.getenv(LIB_LOC, unset = path.expand("~"))
+    if(is.null(Call[["lib"]]))
+      Call[["lib"]] <- Sys.getenv(LIB, unset = WHICH)
+    if(is.null(Call[["lib.loc"]]))
+      Call[["lib.loc"]] <- Sys.getenv(LIB_LOC, unset = path.expand("~"))
     eval.parent(Call)
   }, list(NAME = as.name(dsn),
           WHICH = paste(".R", dsw, sep = "_"),
@@ -181,7 +181,7 @@ Store <- function(..., list = character(0),
   } else 2
   .attach(path, pos = pos, warn = FALSE, readonly = FALSE)
   if(remove) {
-    o <- intersect(eval.parent(quote(objects(all = TRUE))), nam)
+    o <- intersect(eval.parent(quote(objects(all.names = TRUE))), nam)
     if(length(o) > 0)
       eval.parent(substitute(remove(list = O), list(O = o)))
   }
@@ -203,7 +203,7 @@ Objects <- function(lib = Sys.getenv("R_LOCAL_CACHE", unset = ".R_Cache"),
   if(!is.na(pos <- match(path, .pathAttributes())))
     objects(pos = pos, all.names = all.names, pattern = pattern) else {
       .attach(path, pos = 2, warn = FALSE, readonly = readonly)
-      objects(2, all = all.names, pattern = pattern)
+      objects(2, all.names = all.names, pattern = pattern)
     }
 }
 
