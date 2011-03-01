@@ -289,7 +289,11 @@ Search <- local({
         f[length(f)] <- dirname(system.file())
         rhome <- gsub("\\\\", "/", R.home())
         home <- gsub("\\\\", "/", path.expand("~"))
-        f <- gsub(wd, ".", gsub(rhome, "R_HOME", gsub(home, "~", f)))
+        f <- gsub(wd, ".",
+                  gsub(rhome, "R_HOME",
+                       gsub(home, "~", f, fixed = TRUE),
+                       fixed = TRUE),
+                  fixed = TRUE)
         abbrev <- abbrev[1]
         if(is.logical(abbrev) && abbrev)
           abbrev <- 50
