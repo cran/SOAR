@@ -1,5 +1,4 @@
 pdf: SOAR.Rnw refs.bib
-	$(R_HOME)/bin/R CMD Sweave SOAR.Rnw
 	pdflatex SOAR
 	bibtex SOAR
 	pdflatex SOAR
