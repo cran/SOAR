@@ -1,0 +1,14 @@
+d228985e6ae2985765dffd80ee531c1d *DESCRIPTION
+8b54e5a89fbda3af5e077053d40bec76 *NAMESPACE
+c1dbc75b2630151634a6a7d97ef6ef6e *R/SOAR.R
+32529fbaa6e9065cd5f7d9ddf5e95947 *inst/NEWS
+643accdc16d109a21541826470fb9769 *inst/doc/Makefile
+62fa4cdc302598e6599443a033125f7b *inst/doc/SOAR.Rnw
+0d03e5300d1816748f4143517f18daa2 *inst/doc/SOAR.pdf
+0b0ff99aacc905672b85203a8c15c7b1 *inst/doc/refs.bib
+10775b89e958464ad40497531349937d *man/Attach.Rd
+f96cf396e713dccbf38de988ae75f84c *man/Objects.Rd
+7cea36763e15ca02ce405bd754e9f866 *man/Remove.Rd
+b4edec7a4277fb685f6eafc680a03394 *man/SOAR-package.Rd
+fb23aa3dac5db98192777367cb89c93d *man/Search.Rd
+dd1f1e6d0e65d5c90b00cc3abcfc0b96 *man/Store.Rd

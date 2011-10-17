@@ -93,7 +93,7 @@ environment contains the two objects \texttt{S} and \texttt{Xb}, and
 the matrix is stored on the disc in a local stored object cache.
 
 @
-<<strip.white=TRUE>>=
+<<strip.white=true>>=
 objects()   ## or ls()
 find("X")
 @ %def
