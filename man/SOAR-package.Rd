@@ -39,8 +39,8 @@ SOAR: Utility functions for memory management
 
   An established stored object cache may be added to, or re-positioned
   on, the search path by the function \code{Attach}, and the function
-  \code{Objects} may be used to display the objects currently held in a
-  stored object cache.
+  \code{Objects} (alias: \code{Ls}) may be used to display the objects
+  currently held in a stored object cache.
 
   Objects may be removed from the stored object cache using the function
   \code{Remove}.

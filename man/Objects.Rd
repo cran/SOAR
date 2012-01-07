@@ -2,6 +2,9 @@
 \alias{Objects}
 \alias{ObjectsData}
 \alias{ObjectsUtils}
+\alias{Ls}
+\alias{LsData}
+\alias{LsUtils}
 \title{
   List objects in object caches.
 }
@@ -12,10 +15,15 @@ currently not on the search path it is silently attached at position 2.
 }
 \usage{
 Objects(lib = Sys.getenv("R_LOCAL_CACHE", unset = ".R_Cache"),
-        lib.loc = Sys.getenv("R_LOCAL_LIB_LOC", unset = getwd()),
+        lib.loc = Sys.getenv("R_LOCAL_LIB_LOC", unset = "."),
         all.names = FALSE, pattern = ".*", readonly = FALSE)
 ObjectsData(...)
 ObjectsUtils(...)
+Ls(lib = Sys.getenv("R_LOCAL_CACHE", unset = ".R_Cache"),
+        lib.loc = Sys.getenv("R_LOCAL_LIB_LOC", unset = "."),
+        all.names = FALSE, pattern = ".*", readonly = FALSE)
+LsData(...)
+LsUtils(...)
 }
 \arguments{
   \item{lib}{The name of the cache directory from which items are to be

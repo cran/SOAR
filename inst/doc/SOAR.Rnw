@@ -8,7 +8,7 @@
 \author{Bill Venables,\\
 CSIRO Mathematics, Informatics and Statistics\\
 Brisbane, Australia}
-\date{April, 2010}
+\date{January, 2012}
 
 % \VignetteIndexEntry{Stored Object Caches for R}
 
@@ -49,7 +49,7 @@ provided here is more dynamic and flexible.
 
 The \texttt{SOAR} package is based on an earlier package of
 David~Brahm called \texttt{g.data}.  This earlier package was briefly
-described in \emph{R News}.  (See \cite{Rnews:Brahm:2002}).
+described in \emph{R News}; see \cite{Rnews:Brahm:2002}.
 
 % @
 % <<echo=FALSE>>=
@@ -127,13 +127,15 @@ Store(Xb, S)
 Search()
 Objects()
 @ %def
-The \texttt{SOAR} function \texttt{Objects} is like the standard
+The \texttt{SOAR} function \texttt{Objects}\footnote{From version
+  0.99-9, \texttt{Ls} is an allowable alias for \texttt{Objects}, for
+  the convenience of the typing-challenged.} is like the standard
 function \texttt{objects} (or equivalently \texttt{ls}), but applies
 only to stored object caches.  In addition to listing objects, it
-locates the cache on the search path beforehand using both its name and
-\texttt{lib.loc}.  As the position of the cache on the search path may
-wander as packages are added, and as there may be several caches on
-the search path under the same name, this is a useful feature.
+locates the cache on the search path beforehand using both its name
+and \texttt{lib.loc}.  As the position of the cache on the search path
+may wander as packages are added, and as there may be several caches
+on the search path under the same name, this is a useful feature.
 
 \subsection{Memory issues}
 \label{sec:memory}
@@ -394,7 +396,9 @@ Then in any future \R session
 AttachUtils()
 @ %def
 would make \texttt{Vcells}, \verb|%ni%| and \texttt{lsCache}, in
-particular, available on demand.
+particular, available on demand.\footnote{As previously noted,
+  \texttt{Ls} is now an allowable alias of \texttt{Objects}, and
+  \texttt{LsUtils}, \texttt{LsData} for the variants.}
 
 Similarly
 @
@@ -450,6 +454,7 @@ search path is to use \R autoloads.  If we add lines such as
 \begin{verbatim}
 autoload("Store", "SOAR")
 autoload("Objects", "SOAR")
+autoload("Ls", "SOAR")
 autoload("Attach", "SOAR")
 autoload("Remove", "SOAR")
 autoload("Search", "SOAR")
@@ -512,10 +517,10 @@ sessions.
 
 Objects placed in the central utilities directory would usually
 include functions on test prior to collecting them into coherent
-groups and making packages from them.  As yet there is not neat way of
-documenting the objects in stored object caches, which is one reason
-to aim for packages as a more satisfactory and permanent way of
-holding such information.
+groups and making packages from them.  As yet there is no neat way to
+document the objects in stored object caches, which is one reason to
+aim for packages as a more satisfactory and permanent way of holding
+such information.
 
 \subsection{\textsc{Windows} and other traps}
 \label{sec:traps}
@@ -678,7 +683,7 @@ rpl <- paste("@", 0:9, sep = "")
 out <- rbind("Code:" = rpl, "Character:" = bad)
 colnames(out) <- rep("    ", 10)
 noquote(format(out, justify = "right"))
-rm(bad, rpl, f, out)
+rm(bad, rpl, out)
 @ %def
 \item The \verb|@| character itself is encoded as \verb|@@|.
 \item All other printable characters, including the digits, are
@@ -702,31 +707,95 @@ As mentioned previously, David Brahm's \texttt{g.data} package
 offers effectively the same functionality as \texttt{SOAR}, but the
 usage is rather different.  Users may wish to compare the two.
 
+\subsection{The \texttt{filehash} package}
+\label{sec:filehash-package}
+
 Roger Peng's package \texttt{filehash}, which provides \R with hash
 files also allows objects to be stored on the disc and recalled
-automatically as needed.  It uses the \texttt{makeActiveBinding}
-mechanism rather than the \texttt{delayedAssign} mechanism used by
-\texttt{SOAR} and \texttt{g.data}, which has some advantages, but at a
-slightly increased overhead time cost.  There are strengths and
-weaknesses in both approaches and future versions of SOAR may offer a
+automatically as needed.  It uses the
+\texttt{makeActiveBinding}\footnote{See
+  \texttt{help("makeActiveBinding")} or \texttt{?makeActiveBinding} in
+  an \R session for more information.}  mechanism alongside the
+\texttt{delayedAssign} mechanism used by \texttt{SOAR} and
+\texttt{g.data}, which has some advantages, but at a slightly
+increased overhead time cost.  There are strengths and weaknesses in
+both approaches and future versions of SOAR may offer a
 \texttt{makeActiveBinding} mechanism as an alternative to
 \texttt{delayedAssign} particularly for very large objects.  For a
 discussion of the \texttt{filehash} package,
 see~\cite{Rnews:Peng:2006}.
 
-Mark Bravington's package \texttt{mvbutils} also offers a
-\texttt{makeActiveBinding} mechanism to cache objects through the
-function \texttt{mlazy}.  Users should consult the help information
-for \texttt{mvbutils} for further details.  This package has not yet
-been formally described in any published article, but his article on
-his \texttt{debug} package, originally part of \texttt{mvbutils}, can
-be found in \emph{R News}.  See~\cite{Rnews:Bravington:2003}).
+\subsection{The \texttt{mvbutils} package}
+\label{sec:mvbutils-package}
+
+Mark Bravington's package \texttt{mvbutils},
+(See~\cite{bravington2011}), also offers a \texttt{makeActiveBinding}
+mechanism to cache objects through the function \texttt{mlazy}.  Users
+should consult the help information for \texttt{mvbutils} for further
+details.  This package has not yet been formally described in any
+published article, but his article on his \texttt{debug} package,
+originally part of \texttt{mvbutils}, can be found in \emph{R News}.
+See~\cite{Rnews:Bravington:2003}).
+
+\subsection{The packages \texttt{track} and \texttt{track.ff}}
+\label{sec:pack-track-track.ff}
+
+Tony Plate's packages \texttt{track} (on CRAN; see~\cite{plate2011})
+  and \texttt{track.ff} (at the time of writing still under
+  development but available on R-Forge; see~\cite{plate2011a}) provide
+  yet another protocol for holding objects on disc and automatically
+  ``track''-ing them during computations.  Like the \texttt{mvtutils}
+  function \texttt{mlazy}, it uses the ``active binding'' mechanism to
+  ensure that, when tracking is turned on, the objects in an
+  environment are permanently held out of memory and not only
+  retrieved when needed, as in the case of \texttt{SOAR}, but
+  automatically returned to the after any modifications are made.  In
+  effect the objects are kept, as much as possible, \emph{permanently}
+  on the disc as was the case in the original \textbf{S} computation
+  model (and hence \textbf{S-PLUS}).  The environment in which
+  reference to them are mede, however, still retains the names of the
+  objects as if present.  The main differences in usage with
+  \texttt{SOAR} are then
+\begin{itemize}
+\item With \texttt{SOAR} objects are manually nominated for out of
+  memory storage and brought back into memory if an when needed.  It
+  is the responsibility of the user to return them to out of memory
+  storage when no longer needed.  With \texttt{track}, by default, all
+  objects are effectively permanently stored out of memory when the
+  mechanism is turned on.  This is more convenient than the
+  \texttt{SOAR} mechanism, but incurs a slight overhead in performance.
+\item With \texttt{SOAR}, out of memory stored objects are made
+  visible typically at postion~2 of the search path.  This convenient
+  for allowing, for example, the global environment to remain
+  relatively uncluttered while still working with large numbers of
+  objects.  With \texttt{track} the stored objects all remain visible
+  within the same environment.  Whether this is a positive or a
+  negative feature is largely a matter of taste.
+\item With \texttt{SOAR}, if a stored object is modified, the modified
+  version will be held in the working environment \emph{in addition
+    to} the retrieved copy from the cache, (unless the cache is
+  manually re-attached).  This allows trial or temporary modifications
+  to be made to an object, retaining a backup copy until the changed
+  version is itself stored, but at the cost of possibly keeping two
+  versions in memory.  With \texttt{track} changes made to objects are
+  permanent as the changed versions are automatically returned to the
+  cache as soon as feasible\footnote{This difference is mostly a
+    consequence of the previous two, of course.}.
+\end{itemize}
+
+\subsection{The \texttt{R.cache} packege}
+\label{sec:r.cache-packege}
+
 
 Henrik Bengtsson has kindly drawn to my attention the \texttt{R.cache}
-package, which offers yet another related method of working with
-objects out of memory in collections called \emph{caches}, as do we.
-The usage of \texttt{R.cache} is rather different from that of
-\texttt{SOAR}, though.  Users may wish to compare.
+package, (see~\cite{Bengtsson2011}), which offers yet another related
+method of working with objects out of memory in collections called
+\emph{caches}, as do we.  The usage of \texttt{R.cache} is rather
+different from that of \texttt{SOAR}, though.  It is more specialised
+for making possible operations on very large objects, whereas
+\texttt{SOAR} has the management of large numbers of small objects as
+an important, if secondary design goal.  Users may wish to
+compare.
 
 For the special problem of dealing with large, very large or even huge
 objects, there is a special section in the \R task view on high
@@ -736,71 +805,71 @@ packages. (Task views can be found on the \textsc{CRAN} website
 \url{cran.r-project.org}.)
 
 
-\section{Links with \texttt{ASOR}: help for old friends}
-\label{sec:ASOR}
+% \section{Links with \texttt{ASOR}: help for old friends}
+% \label{sec:ASOR}
 
-A precursor to the \texttt{SOAR} package was the package
-\texttt{ASOR}, which was never released through CRAN, but has been in
-fairly widespread trial use for some time.  The name-change was made
-for the officially released package to draw attention to the fact that
-there are some important differences between it and \texttt{ASOR},
-though there is a large degree of backward
-compatibility.\footnote{Another reason to change the name is that
-  speakers with a sufficiently broad Australian accent used to
-  pronounce the old package name as ``eyesore''.}
+% A precursor to the \texttt{SOAR} package was the package
+% \texttt{ASOR}, which was never released through CRAN, but has been in
+% fairly widespread trial use for some time.  The name-change was made
+% for the officially released package to draw attention to the fact that
+% there are some important differences between it and \texttt{ASOR},
+% though there is a large degree of backward
+% compatibility.\footnote{Another reason to change the name is that
+%   speakers with a sufficiently broad Australian accent used to
+%   pronounce the old package name as ``eyesore''.}
 
-The main differences with \texttt{ASOR} are as follows.
-\begin{itemize}
-\item There has been an extension to the file name encoding, as
-  described in Appendix~\ref{sec:technical} above.  This was needed to
-  overcome some deficiencies in the old encoding leading to failures.
-  For example objects such as \verb|con| and \verb|foo<-| can now be
-  cached on \textsc{Windows} which was not the case under the
-  \texttt{ASOR} encoding.
+% The main differences with \texttt{ASOR} are as follows.
+% \begin{itemize}
+% \item There has been an extension to the file name encoding, as
+%   described in Appendix~\ref{sec:technical} above.  This was needed to
+%   overcome some deficiencies in the old encoding leading to failures.
+%   For example objects such as \verb|con| and \verb|foo<-| can now be
+%   cached on \textsc{Windows} which was not the case under the
+%   \texttt{ASOR} encoding.
 
-  \textbf{IMPORTANT NOTE:} If a cache created under \texttt{ASOR} is
-  attached, directly or indirectly with \texttt{SOAR}, \emph{the file
-    names will be re-encoded under the new scheme}, with a warning
-  that this is taking place.  At this point the cache will not be
-  readable with \texttt{ASOR} functions: there is no easy road back.
-  However this is a quick and simple operation and has proved to be
-  very reliable.  Nevertheless users should take to heart the advice
-  given in sub-section~\ref{sec:scripts} on page~\pageref{sec:scripts}
-  and make sure that they have scripts available to re-create all
-  important \R objects rather than relying solely on stored object
-  caches.
-\item There has been a change to the default local stored object cache
-  from \verb|.R_Store| to \verb|.R_Cache|.  This is partly to reflect
-  the change in terminology, but also to make it easier for people to
-  operate with \texttt{ASOR} for a while longer while feeling their
-  way with \texttt{SOAR}, if they so wish.  It could become very
-  confusing if both \texttt{ASOR} and \texttt{SOAR} packages were in
-  use in the same \R session.  Users are warned against this.
+%   \textbf{IMPORTANT NOTE:} If a cache created under \texttt{ASOR} is
+%   attached, directly or indirectly with \texttt{SOAR}, \emph{the file
+%     names will be re-encoded under the new scheme}, with a warning
+%   that this is taking place.  At this point the cache will not be
+%   readable with \texttt{ASOR} functions: there is no easy road back.
+%   However this is a quick and simple operation and has proved to be
+%   very reliable.  Nevertheless users should take to heart the advice
+%   given in sub-section~\ref{sec:scripts} on page~\pageref{sec:scripts}
+%   and make sure that they have scripts available to re-create all
+%   important \R objects rather than relying solely on stored object
+%   caches.
+% \item There has been a change to the default local stored object cache
+%   from \verb|.R_Store| to \verb|.R_Cache|.  This is partly to reflect
+%   the change in terminology, but also to make it easier for people to
+%   operate with \texttt{ASOR} for a while longer while feeling their
+%   way with \texttt{SOAR}, if they so wish.  It could become very
+%   confusing if both \texttt{ASOR} and \texttt{SOAR} packages were in
+%   use in the same \R session.  Users are warned against this.
 
-  There has been effectively no change to the default \texttt{lib}
-  names for the centrally stored object caches.\footnote{The
-    \texttt{Data} and \texttt{Utils} variants did exist in
-    \texttt{ASOR} but were largely unadvertized features and to the
-    author's knowledge, the author was the only person to use them.}
-\item There has been a change to the way the default \texttt{lib} and
-  \texttt{lib.loc} names are specified, now using environment
-  variables.  This is a more flexible system than the previous one and
-  offers a way for users to prescribe their own preferences in this
-  regard in a simple and global way.
-\item The functions \texttt{Save}, \texttt{SaveData} and
-  \texttt{SaveUtils} have been removed.  These were complete aliases
-  for the corresponding forms with \texttt{Store}.  This is because
-  there is already a function \texttt{Save} in the \texttt{Hmisc}
-  package.\footnote{Originally \texttt{ASOR} only had the
-    \texttt{Save} forms, but the \texttt{Store} forms were added as a
-    preferable alternative when the author became aware of the clash
-    with \texttt{Hmisc}.  The \texttt{Save} forms have now passed
-    effectively from deprecated to defunct.}
-\item The function \texttt{Search} has been added, mainly to provide a
-  way for users to separate multiple stored object caches on the
-  search path with the same primary name, but with different
-  \texttt{lib.loc}s.
-\end{itemize}
+%   There has been effectively no change to the default \texttt{lib}
+%   names for the centrally stored object caches.\footnote{The
+%     \texttt{Data} and \texttt{Utils} variants did exist in
+%     \texttt{ASOR} but were largely unadvertized features and to the
+%     author's knowledge, the author was the only person to use them.}
+% \item There has been a change to the way the default \texttt{lib} and
+%   \texttt{lib.loc} names are specified, now using environment
+%   variables.  This is a more flexible system than the previous one and
+%   offers a way for users to prescribe their own preferences in this
+%   regard in a simple and global way.
+% \item The functions \texttt{Save}, \texttt{SaveData} and
+%   \texttt{SaveUtils} have been removed.  These were complete aliases
+%   for the corresponding forms with \texttt{Store}.  This is because
+%   there is already a function \texttt{Save} in the \texttt{Hmisc}
+%   package.\footnote{Originally \texttt{ASOR} only had the
+%     \texttt{Save} forms, but the \texttt{Store} forms were added as a
+%     preferable alternative when the author became aware of the clash
+%     with \texttt{Hmisc}.  The \texttt{Save} forms have now passed
+%     effectively from deprecated to defunct.}
+% \item The function \texttt{Search} has been added, mainly to provide a
+%   way for users to separate multiple stored object caches on the
+%   search path with the same primary name, but with different
+%   \texttt{lib.loc}s.
+% \end{itemize}
 
 
 

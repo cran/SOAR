@@ -8,12 +8,12 @@ Remove stored objects from the disc.
 \description{
 These utilities may be used to remove objects under delayed assignment
 from the disc permanently, where objects are respectively held in a
-local cache, a central data cache or central utilities cache.  
+local cache, a central data cache or central utilities cache.
 }
 \usage{
 Remove(..., list = character(0),
        lib = Sys.getenv("R_LOCAL_CACHE", unset = ".R_Cache"),
-       lib.loc = Sys.getenv("R_LOCAL_LIB_LOC", unset = getwd()))
+       lib.loc = Sys.getenv("R_LOCAL_LIB_LOC", unset = "."))
 RemoveData(...)
 RemoveUtils(...)
 }
@@ -47,7 +47,7 @@ RemoveUtils(...)
     \itemize{
       \item For \code{Remove}, the value of the \code{R} environment
       variable \code{R_LOCAL_LIB_LOC}, or the current working directory
-      if unset, 
+      if unset,
       \item For \code{RemoveDate} and \code{RemoveUtils} the value of
 	the \code{R} environment variable \code{R_CENTRAL_LIB_LOC}, or
 	he user's \code{HOME} directory if unset.
@@ -57,7 +57,7 @@ RemoveUtils(...)
 \details{
   Linking the default values of \code{lib} and \code{lib.loc} to
   environment variables allows the user to re-set the defaults, if need
-  be, either during startup or in the \code{R} session.  
+  be, either during startup or in the \code{R} session.
 }
 \value{
   Nothing.  Used only for side-effects.

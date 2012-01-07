@@ -16,7 +16,7 @@
 \usage{
 Store(..., list = character(0),
       lib = Sys.getenv("R_LOCAL_CACHE", unset = ".R_Cache"),
-      lib.loc = Sys.getenv("R_LOCAL_LIB_LOC", unset = getwd()),
+      lib.loc = Sys.getenv("R_LOCAL_LIB_LOC", unset = "."),
       remove = TRUE)
 StoreData(...)
 StoreUtils(...)
@@ -60,7 +60,7 @@ StoreUtils(...)
 
   \item{remove}{
     Logical.  Should the objects be removed from the current environment?
-    Normally this would be the case.  
+    Normally this would be the case.
   }
 }
 \details{

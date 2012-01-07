@@ -11,7 +11,7 @@ of such a cache already on the search path.
 }
 \usage{
 Attach(lib = Sys.getenv("R_LOCAL_CACHE", unset = ".R_Cache"),
-       lib.loc = Sys.getenv("R_LOCAL_LIB_LOC", unset = getwd()),
+       lib.loc = Sys.getenv("R_LOCAL_LIB_LOC", unset = "."),
        pos = 2, uniquely = TRUE, readonly = FALSE, ...)
 AttachData(...)
 AttachUtils(...)
@@ -49,7 +49,7 @@ AttachUtils(...)
   }
   \item{uniquely}{
     Logical. Are multiple copies of the same cache on the search path to
-    be disallowed?  If \code{TRUE}, a single copy only is left on the 
+    be disallowed?  If \code{TRUE}, a single copy only is left on the
     search path.
   }
   \item{readonly}{

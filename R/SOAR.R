@@ -89,7 +89,7 @@
 }
 
 Attach <- function(lib = Sys.getenv("R_LOCAL_CACHE", unset = ".R_Cache"),
-                   lib.loc = Sys.getenv("R_LOCAL_LIB_LOC", unset = getwd()),
+                   lib.loc = Sys.getenv("R_LOCAL_LIB_LOC", unset = "."),
                    pos = 2, uniquely = TRUE, readonly = FALSE, ...) {
   if(class((x <- substitute(lib))) == "name")
     lib <- deparse(x) else lib <- lib
@@ -118,7 +118,7 @@ AttachUtils <- .makeClone(Attach, Utils)
 
 Store <- function(..., list = character(0),
                   lib = Sys.getenv("R_LOCAL_CACHE", unset = ".R_Cache"),
-                  lib.loc = Sys.getenv("R_LOCAL_LIB_LOC", unset = getwd()),
+                  lib.loc = Sys.getenv("R_LOCAL_LIB_LOC", unset = "."),
                   remove = TRUE) {
   if(class((.x <- substitute(lib))) == "name")
     lib <- deparse(.x) else lib <- lib
@@ -191,7 +191,7 @@ StoreData <- .makeClone(Store, Data)
 StoreUtils <- .makeClone(Store, Utils)
 
 Objects <- function(lib = Sys.getenv("R_LOCAL_CACHE", unset = ".R_Cache"),
-                    lib.loc = Sys.getenv("R_LOCAL_LIB_LOC", unset = getwd()),
+                    lib.loc = Sys.getenv("R_LOCAL_LIB_LOC", unset = "."),
                     all.names = FALSE, pattern = ".*", readonly = FALSE) {
   if(class((x <- substitute(lib))) == "name")
     lib <- deparse(x) else lib <- lib
@@ -209,10 +209,14 @@ Objects <- function(lib = Sys.getenv("R_LOCAL_CACHE", unset = ".R_Cache"),
 
 ObjectsData <- .makeClone(Objects, Data)
 ObjectsUtils <- .makeClone(Objects, Utils)
+Ls <- Objects
+LsUtils <- .makeClone(Ls, Utils)
+LsData <- .makeClone(Ls, Data)
+
 
 Remove <- function(..., list = character(0),
                    lib = Sys.getenv("R_LOCAL_CACHE", unset = ".R_Cache"),
-                   lib.loc = Sys.getenv("R_LOCAL_LIB_LOC", unset = getwd())) {
+                   lib.loc = Sys.getenv("R_LOCAL_LIB_LOC", unset = ".")) {
   if(class((.x <- substitute(lib))) == "name")
     lib <- deparse(.x) else lib <- lib
   if(!(file.exists(lib.loc) && file.info(lib.loc)$isdir))
