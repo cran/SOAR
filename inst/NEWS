@@ -1,3 +1,7 @@
+	o SOAR v0.99-10
+	  - Minor bug fixed in Search() to use abbreviated names
+	    for the home and R_HOME directories.
+
 	o SOAR v0.99-8 and v0.99-9  Changes to v0.99-7
 	  - the functions Ls, LsUtils and LsData are now allowed
 	    aliases for Objects, ObjectsUtils and ObjectsData respectively,

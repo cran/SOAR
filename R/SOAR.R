@@ -272,43 +272,44 @@ RemoveData <- .makeClone(Remove, Data)
 RemoveUtils <-.makeClone(Remove, Utils)
 
 Search <- local({
-    .zf <- function (s)
-        paste(substring(paste(rep(0,
-                                  (m <- max(n <-
-                                            nchar(s <-
-                                                  as.character(s))))),
-                              collapse = ""), 0, m - n), s, sep = "")
-    function (abbrev = FALSE) {
-        d <- search()
-        wd <- getwd()
-        f <- ""
-        e <- .GlobalEnv
-        for (j in 2:length(d)) {
-            e <- parent.env(e)
-            p <- attr(e, "path")
-            if (is.null(p))
-                p <- "" else p <- dirname(p)
-            f <- c(f, p)
-        }
-        f[length(f)] <- dirname(system.file())
-        rhome <- gsub("\\\\", "/", R.home())
-        home <- gsub("\\\\", "/", path.expand("~"))
-        f <- gsub(wd, ".",
-                  gsub(rhome, "R_HOME",
-                       gsub(home, "~", f, fixed = TRUE),
-                       fixed = TRUE),
-                  fixed = TRUE)
-        abbrev <- abbrev[1]
-        if(is.logical(abbrev) && abbrev)
-          abbrev <- 50
-        else
-          abbrev <- as.numeric(abbrev)
-        if(!is.na(abbrev) && abbrev > 0)
-          if(any(w <- ((n <- nchar(f)) > abbrev))) {
-            f[w] <- paste("...", substring(f[w], n[w]-abbrev+1, n[w]))
-        }
-        d <- cbind(name = d, lib.loc = f)
-        dimnames(d)[[1]] <- .zf(1:nrow(d))
-        noquote(d)
+  .zf <- function (s)
+      paste(substring(paste(rep(0, (m <-
+                                    max(n <-
+                                        nchar(s <-
+                                              as.character(s))))),
+                            collapse = ""), 0, m - n), s, sep = "")
+
+  function (abbrev = FALSE) {
+    d <- search()
+    wd <- normalizePath(getwd(), winslash = "/")
+    f <- ""
+    e <- globalenv()
+    for (j in 2:length(d)) {
+      e <- parent.env(e)
+      p <- attr(e, "path")
+      if (is.null(p))
+          p <- ""
+      else p <- dirname(p)
+      f <- c(f, p)
     }
+    f[length(f)] <- normalizePath(dirname(system.file()), winslash="/")
+    rhome <- normalizePath(R.home(), winslash = "/")
+    home <- normalizePath("~", winslash = "/")
+    f <- gsub(wd, ".",
+              gsub(rhome, "R_HOME",
+                   gsub(home, "~",
+                        f, fixed = TRUE), fixed = TRUE), fixed = TRUE)
+    abbrev <- abbrev[1]
+    if (is.logical(abbrev) && abbrev)
+        abbrev <- 50
+    else abbrev <- as.numeric(abbrev)
+    if (!is.na(abbrev) && abbrev > 0)
+        if (any(w <- ((n <- nchar(f)) > abbrev))) {
+          f[w] <- paste("...", substring(f[w], n[w] - abbrev +
+                                         1, n[w]))
+        }
+    d <- cbind(name = d, lib.loc = f)
+    dimnames(d)[[1]] <- .zf(1:nrow(d))
+    noquote(d)
+  }
 })
