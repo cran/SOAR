@@ -23,10 +23,9 @@ SOAR: Utility functions for memory management
   \tabular{ll}{
     Package: \tab SOAR\cr
     Type: \tab Package\cr
-    Version: \tab 0.99-10\cr
-    Date: \tab 2012-01-14\cr
+    Version: \tab 0.99-11\cr
+    Date: \tab 2013-12-12\cr
     License: \tab GPL-2 or GPL-3\cr
-    LazyLoad: \tab yes\cr
   }
   The function \code{Store} is used to take objects from memory and
   store them as \code{.RData} files, usually in a sub-directory of the

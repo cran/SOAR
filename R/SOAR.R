@@ -88,6 +88,8 @@
   f
 }
 
+NAME <- function() NULL
+
 Attach <- function(lib = Sys.getenv("R_LOCAL_CACHE", unset = ".R_Cache"),
                    lib.loc = Sys.getenv("R_LOCAL_LIB_LOC", unset = "."),
                    pos = 2, uniquely = TRUE, readonly = FALSE, ...) {

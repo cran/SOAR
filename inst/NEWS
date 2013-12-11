@@ -1,3 +1,7 @@
+	o SOAR v0.99-11
+	  - Minor update to conform with changing requirements for 
+	    package vignettes.
+
 	o SOAR v0.99-10
 	  - Minor bug fixed in Search() to use abbreviated names
 	    for the home and R_HOME directories.
